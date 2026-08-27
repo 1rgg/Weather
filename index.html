@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether · Skies & Weather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&family=Quicksand:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<style>
+/* ============ 基础重置 ============ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#34435e;
+  --ink-soft:#6b7a93;
+  --paper:#fdf3ec;
+  --sky:#eaf4ff;
+  --line:#d8e3f2;
+  --card-bg:rgba(255,255,255,.78);
+  --shadow:0 18px 40px -18px rgba(52,67,94,.35);
+  --shadow-hover:0 28px 60px -20px rgba(52,67,94,.45);
+  --radius:26px;
+  --ok:#3aa676;
+  --warn:#e8a13a;
+  --err:#e0566b;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Quicksand','ZCOOL KuaiLe',system-ui,sans-serif;
+  color:var(--ink);
+  min-height:100vh;
+  background:linear-gradient(180deg,#eaf4ff 0%,#eef6ff 35%,#fbf1ea 75%,#fdf3ec 100%);
+  background-attachment:fixed;
+  overflow-x:hidden;
+  position:relative;
+  -webkit-font-smoothing:antialiased;
+}
+/* 背景梦幻光晕 */
+.bg-deco{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;animation:floatBlob 18s ease-in-out infinite}
+.blob.b1{width:380px;height:380px;left:-80px;top:8%;background:radial-gradient(circle,#bcdcff,#bcdcff00)}
+.blob.b2{width:320px;height:320px;right:-60px;top:30%;background:radial-gradient(circle,#ffd9e6,#ffd9e600);animation-delay:-6s;animation-duration:22s}
+.blob.b3{width:420px;height:420px;left:30%;bottom:-120px;background:radial-gradient(circle,#fff3c4,#fff3c400);animation-delay:-11s;animation-duration:26s}
+@keyframes floatBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-30px) scale(1.08)}}
+
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 22px}
+
+/* ============ 标题 ============ */
+header{padding:56px 0 22px;text-align:center}
+.brand-mark{display:inline-block;width:46px;height:46px;margin-bottom:6px;animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+h1{
+  font-family:'Fraunces',serif;
+  font-style:italic;
+  font-weight:600;
+  font-size:clamp(54px,9vw,92px);
+  line-height:.95;
+  letter-spacing:-.02em;
+  background:linear-gradient(120deg,#34435e,#5b7bb0 55%,#7a9bd6);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.sub{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  margin-top:10px;font-size:clamp(15px,2.2vw,19px);color:var(--ink-soft);
+  font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+}
+.tagline{margin-top:14px;font-size:13.5px;color:var(--ink-soft);font-weight:500}
+.tagline b{color:var(--ink)}
+.live-dot{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--ok);font-weight:700}
+.live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(58,166,118,.6);animation:pulseDot 1.8s infinite}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(58,166,118,.6)}70%{box-shadow:0 0 0 8px rgba(58,166,118,0)}100%{box-shadow:0 0 0 0 rgba(58,166,118,0)}}
+
+/* ============ 搜索 + 刷新 ============ */
+.bar{display:flex;gap:12px;align-items:center;max-width:560px;margin:26px auto 0}
+.search-wrap{position:relative;flex:1}
+.search-box{
+  display:flex;align-items:center;gap:10px;
+  background:var(--card-bg);backdrop-filter:blur(14px);
+  border:1.5px solid rgba(255,255,255,.9);
+  box-shadow:var(--shadow);
+  border-radius:999px;padding:13px 20px;
+  transition:border-color .3s,box-shadow .3s;
+}
+.search-box:focus-within{border-color:#a9c8ef;box-shadow:0 0 0 4px rgba(120,170,230,.18),var(--shadow)}
+.search-box svg{flex:0 0 auto;color:var(--ink-soft)}
+.search-box input{
+  flex:1;min-width:0;border:0;outline:0;background:transparent;
+  font-family:inherit;font-size:15.5px;color:var(--ink);font-weight:600;
+}
+.search-box input::placeholder{color:#9aa9bf;font-weight:500}
+.kbd{font-size:11px;color:#9aa9bf;border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-weight:600}
+.refresh-btn{
+  flex:0 0 auto;width:50px;height:50px;border-radius:50%;border:1.5px solid rgba(255,255,255,.9);
+  background:var(--card-bg);backdrop-filter:blur(14px);cursor:pointer;color:var(--ink);
+  box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+  transition:transform .3s,background .2s,color .2s;
+}
+.refresh-btn:hover{background:#5b7bb0;color:#fff;transform:rotate(180deg)}
+.refresh-btn.loading svg{animation:spin 1s linear infinite}
+
+.suggest{
+  position:absolute;top:calc(100% + 10px);left:0;right:0;z-index:30;
+  background:#fff;border-radius:18px;box-shadow:var(--shadow-hover);
+  overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-6px);
+  transition:opacity .2s,transform .2s,visibility .2s;
+}
+.suggest.open{opacity:1;visibility:visible;transform:translateY(0)}
+.sug-item{
+  display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;
+  border-bottom:1px solid #f1f5fb;transition:background .15s;
+}
+.sug-item:last-child{border-bottom:0}
+.sug-item:hover,.sug-item.active{background:#f4f8ff}
+.sug-zh{font-family:'ZCOOL KuaiLe';font-size:16px;font-weight:400}
+.sug-prov{color:#a9b6c8;font-size:11.5px;font-weight:600}
+.sug-en{color:var(--ink-soft);font-size:13px;font-weight:600;margin-left:auto}
+.sug-freeform{border-top:1px dashed #e2e9f3}
+.sug-freeform .sug-zh{color:#7a8aa3}
+.sug-freeform .sug-prov{color:#9aa9bf;font-style:italic}
+
+/* ============ 网格 ============ */
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:24px;margin:36px auto 0;
+}
+
+/* ============ 卡片 ============ */
+.card{
+  position:relative;border-radius:var(--radius);overflow:hidden;
+  background:#fff;box-shadow:var(--shadow);
+  cursor:pointer;
+  animation:cardEnter .6s cubic-bezier(.2,.7,.2,1) both;
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s;
+  isolation:isolate;
+}
+@keyframes cardEnter{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+.card:hover{transform:translateY(-10px);box-shadow:var(--shadow-hover)}
+.card:hover .del{opacity:1;transform:scale(1) rotate(0)}
+
+.sky{position:relative;height:172px;overflow:hidden}
+.sky svg,.sky i,.sky div,.sky span{pointer-events:none}
+
+.del{
+  position:absolute;top:12px;right:12px;z-index:6;
+  width:30px;height:30px;border-radius:50%;border:0;cursor:pointer;
+  background:rgba(255,255,255,.85);color:var(--ink);
+  font-size:18px;font-weight:700;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:scale(.6) rotate(-30deg);
+  transition:opacity .25s,transform .25s,background .2s;
+  box-shadow:0 4px 12px rgba(52,67,94,.2);
+}
+.del:hover{background:#ff5c7a;color:#fff}
+
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);
+  transform:scale(0);animation:ripple .65s ease-out;pointer-events:none;z-index:5}
+@keyframes ripple{to{transform:scale(2.4);opacity:0}}
+
+.card-body{padding:16px 20px 20px;background:#fff;position:relative}
+.city{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.city-zh{font-family:'ZCOOL KuaiLe';font-size:23px;font-weight:400;letter-spacing:.02em}
+.city-en{font-size:12px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.temp-row{display:flex;align-items:baseline;gap:10px;margin:6px 0 2px}
+.temp{font-family:'Baloo 2';font-weight:700;font-size:52px;line-height:1;color:var(--ink)}
+.temp sup{font-size:.5em;font-weight:600;top:-.55em;position:relative}
+.feel{font-size:11.5px;color:var(--ink-soft);font-weight:600}
+.cond{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:13px;font-weight:700;color:var(--ink-soft);
+  background:#f3f7ff;padding:5px 12px;border-radius:999px;margin:10px 0 13px;
+}
+.cond-dot{width:8px;height:8px;border-radius:50%}
+.meta{display:flex;gap:14px;font-size:12px;color:var(--ink-soft);font-weight:600;flex-wrap:wrap}
+.meta b{color:var(--ink);font-family:'Baloo 2';font-size:14px}
+.updated{margin-top:12px;font-size:10.5px;color:#aab6c7;font-weight:600}
+
+/* 预警徽章 */
+.alarm{
+  position:absolute;top:12px;left:12px;z-index:6;
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.9);color:var(--warn);
+  font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;
+  box-shadow:0 4px 12px rgba(232,161,58,.3);max-width:60%;
+}
+.alarm svg{flex:0 0 auto}
+.alarm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============ 加载 / 错误态 ============ */
+.sky.loading{background:linear-gradient(135deg,#e8f0fb,#f3eef6)!important}
+.sky.loading::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.sky.loading .spinner{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:34px;height:34px;border:3.5px solid rgba(255,255,255,.5);border-top-color:#5b7bb0;
+  border-radius:50%;animation:spin .9s linear infinite;z-index:2;
+}
+.loading-text{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  font-size:11.5px;color:var(--ink-soft);font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.card-body.loading .skeleton{background:linear-gradient(90deg,#eef2f7,#e4e9f1,#eef2f7);border-radius:8px;
+  background-size:200% 100%;animation:shimmer 1.4s infinite;height:14px;margin-bottom:10px}
+.card-body.loading .skeleton.t{height:30px;width:120px;border-radius:8px}
+.card-body.loading .skeleton.c{width:140px}
+.card-body.loading .skeleton.m{width:90px}
+
+.sky.error{background:linear-gradient(135deg,#fdecee,#f6eef0)!important}
+.err-box{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;text-align:center}
+.err-box .ico{width:36px;height:36px;border-radius:50%;background:rgba(224,86,107,.12);color:var(--err);display:flex;align-items:center;justify-content:center}
+.err-box p{font-size:12.5px;color:var(--ink-soft);font-weight:600;line-height:1.4}
+.err-box .reason{color:var(--err);font-weight:700;font-size:12.5px}
+.err-box .hint{font-size:10.5px;color:#9aa9bf;font-weight:600;line-height:1.45;max-width:92%}
+.err-box .detail{font-size:9.5px;color:#c2cbd6;font-family:ui-monospace,monospace;word-break:break-all}
+.retry{margin-top:2px;border:0;background:var(--ink);color:#fff;font-family:inherit;font-weight:700;
+  font-size:12px;padding:6px 16px;border-radius:999px;cursor:pointer;transition:background .2s}
+.retry:hover{background:#5b7bb0}
+
+/* ============ 天气场景：天空底色 ============ */
+[data-weather="clear"] .sky{background:linear-gradient(180deg,#a9d8ff 0%,#cfe9ff 55%,#ffe9c4 100%)}
+[data-weather="cloudy"] .sky{background:linear-gradient(180deg,#b9c6d8 0%,#d2dbe7 60%,#e7eef6 100%)}
+[data-weather="rain"] .sky{background:linear-gradient(180deg,#5f7088 0%,#7b8ca6 55%,#9aa9c0 100%)}
+[data-weather="snow"] .sky{background:linear-gradient(180deg,#c3d2e6 0%,#dbe6f1 60%,#f0f5fb 100%)}
+[data-weather="thunder"] .sky{background:linear-gradient(180deg,#2f3450 0%,#3e4263 55%,#54517e 100%)}
+[data-weather="mist"] .sky{background:linear-gradient(180deg,#d6dde4 0%,#e6ebf0 60%,#f3f6f9 100%)}
+[data-weather="night"] .sky{background:linear-gradient(180deg,#141a36 0%,#241f50 50%,#3d2f6b 100%)}
+
+/* 云朵通用 */
+.cloud{position:absolute;height:auto;animation:drift linear infinite;will-change:left;color:#fff;opacity:.95}
+@keyframes drift{from{left:-45%}to{left:115%}}
+[data-weather="rain"] .cloud{color:#d4ddf0;opacity:.9}
+[data-weather="snow"] .cloud{color:#fff;opacity:1}
+[data-weather="thunder"] .cloud{color:#3a3a5e;opacity:.95}
+[data-weather="night"] .cloud{color:#2a3052;opacity:.7}
+
+/* —— 晴朗 —— */
+.sun-cele{position:absolute;top:-26px;right:-14px;width:140px;height:140px}
+.sun-rays{position:absolute;inset:0;animation:spin 36s linear infinite}
+.sun-rays i{position:absolute;left:50%;top:50%;width:4px;height:62px;margin-left:-2px;
+  background:linear-gradient(#fff3bd,rgba(255,221,120,.12));border-radius:4px;transform-origin:2px 0}
+.sun-core{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;
+  border-radius:50%;background:radial-gradient(circle at 38% 35%,#fff7d6,#ffce5e 60%,#ffb13b);
+  box-shadow:0 0 30px 8px rgba(255,209,90,.55)}
+.sun-glow{position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,224,150,.5),transparent 62%);
+  animation:pulse 4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.12);opacity:.85}}
+
+/* —— 多云 —— */
+.cloudy-sun{position:absolute;top:14px;right:40px;width:70px;height:70px;opacity:.7;
+  background:radial-gradient(circle,#fff3c0,#ffce5e 60%,transparent 72%);border-radius:50%;filter:blur(1px)}
+
+/* —— 小雨 —— */
+.raindrop{position:absolute;width:2px;border-radius:2px;
+  background:linear-gradient(transparent,rgba(190,215,255,.95));animation:rainfall linear infinite}
+@keyframes rainfall{
+  0%{transform:translateY(-24px);opacity:0}
+  12%{opacity:1}
+  88%{opacity:1}
+  100%{transform:translateY(190px);opacity:0}
+}
+
+/* —— 飘雪 —— */
+.snowflake{position:absolute;border-radius:50%;
+  background:radial-gradient(circle,#fff,#ffffffcc 60%,transparent);filter:blur(.3px);
+  animation:snowfall linear infinite}
+@keyframes snowfall{
+  0%{transform:translate(0,-20px);opacity:0}
+  12%{opacity:1}
+  50%{transform:translate(9px,90px)}
+  100%{transform:translate(-7px,196px);opacity:0}
+}
+
+/* —— 雷阵雨 —— */
+.lightning-flash{position:absolute;inset:0;background:transparent;animation:flash 5.5s infinite;mix-blend-mode:screen}
+@keyframes flash{
+  0%,90%,100%{background:transparent}
+  91%{background:rgba(255,255,255,.82)}
+  92%{background:transparent}
+  93%{background:rgba(255,255,255,.55)}
+  94%{background:transparent}
+}
+.bolt{position:absolute;top:6px;left:48%;width:34px;height:90px;opacity:0;animation:boltShow 5.5s infinite;z-index:3}
+@keyframes boltShow{0%,90.5%,92.5%,100%{opacity:0}91%,92%{opacity:.9;filter:drop-shadow(0 0 10px #fff7b0)}}
+
+/* —— 薄雾 —— */
+.mist-band{position:absolute;left:-40%;width:180%;height:26px;
+  background:radial-gradient(ellipse at center,rgba(255,255,255,.75),rgba(255,255,255,.25) 50%,transparent 75%);
+  filter:blur(6px);animation:mistDrift linear infinite}
+@keyframes mistDrift{from{transform:translateX(-18%)}to{transform:translateX(18%)}}
+[data-weather="mist"] .cloud{color:#fff;opacity:.6}
+
+/* —— 晴夜 —— */
+.moon{position:absolute;top:18px;right:24px;width:62px;height:62px;animation:moonFloat 7s ease-in-out infinite}
+.moon .body{position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 36% 34%,#fffdf0,#f4ecc8 55%,#e3d6a0);
+  box-shadow:0 0 26px 6px rgba(255,247,200,.45),inset -8px -6px 14px rgba(180,160,90,.35)}
+.moon .crater{position:absolute;border-radius:50%;background:rgba(190,170,100,.3)}
+.star{position:absolute;color:#fff;animation:twinkle ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.3;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
+@keyframes moonFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+/* ============ 页脚 ============ */
+footer{margin:70px auto 40px;text-align:center;color:#9aa9bf;font-size:12.5px;font-weight:500;line-height:1.8}
+footer b{color:var(--ink-soft)}
+
+/* ============ Toast ============ */
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translate(-50%,30px);
+  background:var(--ink);color:#fff;padding:12px 22px;border-radius:999px;
+  font-size:14px;font-weight:600;z-index:99;opacity:0;
+  box-shadow:0 12px 30px rgba(52,67,94,.4);transition:opacity .3s,transform .3s;
+  pointer-events:none;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ============ 详情按钮 ============ */
+.detail-btn{
+  margin-top:13px;width:100%;border:0;cursor:pointer;font-family:inherit;
+  background:linear-gradient(120deg,#f3f7ff,#eef2ff);color:#5b7bb0;
+  font-size:12.5px;font-weight:700;padding:9px 12px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:background .2s,color .2s,transform .15s;
+}
+.detail-btn:hover{background:linear-gradient(120deg,#5b7bb0,#7a9bd6);color:#fff;transform:translateY(-1px)}
+.detail-btn span{font-size:15px;line-height:1;transform:translateY(-1px)}
+
+/* ============ 详情弹窗 ============ */
+.modal{
+  position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(40,52,78,.42);backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;
+}
+.modal.open{opacity:1;visibility:visible}
+.modal-card{
+  width:min(680px,100%);max-height:88vh;overflow-y:auto;
+  background:#fff;border-radius:26px 26px 0 0;box-shadow:0 -20px 60px rgba(40,52,78,.35);
+  transform:translateY(40px);transition:transform .35s cubic-bezier(.2,.7,.2,1);
+  padding:20px 22px 28px;
+}
+.modal.open .modal-card{transform:translateY(0)}
+.m-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.m-head .zh{font-family:'ZCOOL KuaiLe';font-size:24px}
+.m-head .en{font-size:12px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.m-close{
+  margin-left:auto;width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;
+  background:#f1f5fb;color:var(--ink);font-size:18px;font-weight:700;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s;
+}
+.m-close:hover{background:#ff5c7a;color:#fff}
+.m-sub{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-bottom:16px}
+.m-sec{margin-top:18px}
+.m-sec h4{font-size:13px;color:var(--ink-soft);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.m-sec h4::before{content:'';width:4px;height:14px;border-radius:3px;background:linear-gradient(#7a9bd6,#5b7bb0)}
+/* 逐小时 */
+.hourly{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+.hourly::-webkit-scrollbar{height:6px}
+.hourly::-webkit-scrollbar-thumb{background:#dfe7f2;border-radius:3px}
+.h-cell{flex:0 0 auto;width:74px;background:#f7f9fd;border-radius:14px;padding:10px 6px;text-align:center;scroll-snap-align:start}
+.h-cell.now{background:linear-gradient(160deg,#eaf2ff,#f0eaff)}
+.h-time{font-size:11px;color:var(--ink-soft);font-weight:700}
+.h-cell.now .h-time{color:#5b7bb0}
+.h-img{width:34px;height:34px;margin:4px auto;object-fit:contain}
+.h-temp{font-family:'Baloo 2';font-weight:700;font-size:17px;color:var(--ink)}
+.h-rain{font-size:10px;color:#6f93c7;font-weight:600;margin-top:2px;min-height:12px}
+/* 7天 */
+.weekly{display:flex;flex-direction:column;gap:6px}
+.w-row{display:grid;grid-template-columns:64px 1fr auto auto;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:#f7f9fd}
+.w-date{font-size:12.5px;font-weight:700;color:var(--ink)}
+.w-date small{display:block;font-size:10.5px;color:var(--ink-soft);font-weight:600}
+.w-mid{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-soft);font-weight:600}
+.w-mid img{width:24px;height:24px}
+.w-temp{font-family:'Baloo 2';font-weight:700;font-size:15px;white-space:nowrap}
+.w-temp .lo{color:var(--ink-soft);font-weight:600}
+.w-wind{font-size:10.5px;color:#9aa9bf;font-weight:600;text-align:right;min-width:54px}
+/* 日出日落 */
+.sunline{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);font-weight:600;background:#fff8ec;border-radius:14px;padding:12px 16px}
+.sunline b{color:#e8a13a;font-family:'Baloo 2';font-size:14px}
+
+/* ============ 响应式 ============ */
+@media(max-width:560px){
+  header{padding:42px 0 16px}
+  .grid{gap:18px}
+  .sky{height:150px}
+  .temp{font-size:46px}
+  .search-box{padding:12px 16px}
+  .bar{max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.01s !important}
+}
+</style>
+</head>
+<body>
+<div class="bg-deco">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+</div>
+
+<div class="wrap">
+  <header>
+    <svg class="brand-mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <circle cx="24" cy="24" r="9" fill="#ffce5e"/>
+      <g stroke="#7a9bd6" stroke-width="2.4" stroke-linecap="round">
+        <line x1="24" y1="3" x2="24" y2="9"/><line x1="24" y1="39" x2="24" y2="45"/>
+        <line x1="3" y1="24" x2="9" y2="24"/><line x1="39" y1="24" x2="45" y2="24"/>
+        <line x1="9" y1="9" x2="13" y2="13"/><line x1="35" y1="35" x2="39" y2="39"/>
+        <line x1="39" y1="9" x2="35" y2="13"/><line x1="13" y1="35" x2="9" y2="39"/>
+      </g>
+    </svg>
+    <h1>Aether</h1>
+    <div class="sub">
+      <svg width="46" height="10" viewBox="0 0 46 10" aria-hidden="true"><path d="M1 6 Q8 1 15 6 T29 6 T43 6" stroke="#a9c8ef" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+      <span>Skies &amp; Weather</span>
+      <svg width="46" height="10" viewBox="0 0 46 10" aria-hidden="true"><path d="M3 6 Q10 1 17 6 T31 6 T45 6" stroke="#a9c8ef" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+    </div>
+    <p class="tagline">手绘梦幻天气簿 · <b>Hand-drawn skies, live &amp; dreamy</b><span class="live-dot">LIVE 实时</span></p>
+  </header>
+
+  <div class="bar">
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <input id="search" type="text" placeholder="搜索城市 · search a city…" autocomplete="off" spellcheck="false">
+        <span class="kbd">Enter</span>
+      </div>
+      <div class="suggest" id="suggest"></div>
+    </div>
+    <button class="refresh-btn" id="refresh" title="刷新全部天气" aria-label="刷新全部">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M21 4v5h-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <main class="grid" id="grid" aria-live="polite"></main>
+
+  <footer>
+    <div>Aether — illustrated weather, powered by 中国气象局实时数据</div>
+    <div><b>插画手绘 · 动态天空 · 中英双语 · 实时天气</b>　·　数据来源 apihz.cn</div>
+  </footer>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="m-head">
+      <span class="zh" id="m-zh"></span>
+      <span class="en" id="m-en"></span>
+      <button class="m-close" id="m-close" aria-label="关闭">×</button>
+    </div>
+    <div class="m-sub" id="m-sub"></div>
+    <section class="m-sec">
+      <h4>逐小时预报 · Hourly</h4>
+      <div class="hourly" id="m-hourly"></div>
+    </section>
+    <section class="m-sec">
+      <h4>7 天预报 · 7-Day</h4>
+      <div class="weekly" id="m-weekly"></div>
+    </section>
+    <section class="m-sec">
+      <h4>日出日落 · Sun</h4>
+      <div class="sunline" id="m-sun"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Aether · 实时天气接入
+   接口：apihz.cn 中国气象局天气预报
+   ========================================================= */
+const API = {
+  url: 'https://cn.apihz.cn/api/tianqi/tqyb.php',
+  id:  '10018701',
+  key: 'c00e44cf2aa764f869b6d2d17f032301',
+  cacheMs: 20 * 60 * 1000, // 20 分钟缓存
+};
+
+/* ============ 天气场景配色 + 中英标签 ============ */
+const WEATHER = {
+  clear:   { zh:'晴',     en:'Clear',        dot:'#ffce5e' },
+  cloudy:  { zh:'多云',   en:'Cloudy',       dot:'#9fb3c8' },
+  rain:    { zh:'雨',     en:'Rain',         dot:'#6f93c7' },
+  snow:    { zh:'雪',     en:'Snow',         dot:'#bcd3ea' },
+  thunder: { zh:'雷阵雨', en:'Thunderstorm', dot:'#6b5fa8' },
+  mist:    { zh:'雾',     en:'Misty',        dot:'#c2cbd6' },
+  night:   { zh:'晴夜',   en:'Clear Night',  dot:'#c8bce0' },
+};
+
+/* 中文天气文本 → 场景 + 英文（按优先级，长词先匹配） */
+const WEATHER_MAP = [
+  ['雷阵雨','Thunderstorm'], ['雷','Thunderstorm'],
+  ['暴雨','Rainstorm'], ['大雨','Heavy Rain'], ['中雨','Moderate Rain'], ['小雨','Light Rain'], ['阵雨','Showers'], ['雨','Rain'],
+  ['暴雪','Blizzard'], ['大雪','Heavy Snow'], ['中雪','Moderate Snow'], ['小雪','Light Snow'], ['雨夹雪','Sleet'], ['雪','Snow'],
+  ['雾','Fog'], ['霾','Haze'], ['沙','Sandstorm'], ['浮尘','Dust'],
+  ['阴','Overcast'], ['多云','Cloudy'], ['晴','Clear'],
+];
+function mapWeather(text, night){
+  const t = text || '';
+  let en = 'Clear', found = false;
+  for(const [k,v] of WEATHER_MAP){ if(t.includes(k)){ en = v; found = true; break; } }
+  let scene;
+  const isClearLike = t.includes('晴');
+  if(t.includes('雷')) scene = 'thunder';
+  else if(t.includes('雪')||t.includes('冰雹')) scene = 'snow';
+  else if(t.includes('雨')) scene = 'rain';
+  else if(t.includes('雾')||t.includes('霾')||t.includes('沙')||t.includes('尘')) scene = 'mist';
+  else if(isClearLike) scene = night ? 'night' : 'clear';
+  else if(t.includes('云')||t.includes('阴')) scene = 'cloudy';
+  else scene = night ? 'night' : 'clear';
+  return { scene, en };
+}
+
+/* ============ 省份表 + 常用城市英文名映射 ============ */
+const PROVINCES = ['上海','云南','内蒙古','北京','台湾','吉林','四川','天津','宁夏','安徽','山东','山西','广东','广西','新疆','江苏','江西','河北','河南','浙江','海南','湖北','湖南','澳门','甘肃','福建','西藏','贵州','辽宁','重庆','陕西','青海','香港','黑龙江'];
+const EN_MAP = {'北京':'Beijing','上海':'Shanghai','广州':'Guangzhou','深圳':'Shenzhen','东莞':'Dongguan','哈尔滨':'Harbin','成都':'Chengdu','重庆':'Chongqing','杭州':'Hangzhou','西安':"Xi'an",'武汉':'Wuhan','南京':'Nanjing','天津':'Tianjin','苏州':'Suzhou','长沙':'Changsha','青岛':'Qingdao','大连':'Dalian','厦门':'Xiamen','昆明':'Kunming','拉萨':'Lhasa','乌鲁木齐':'Urumqi','三亚':'Sanya','桂林':'Guilin','贵阳':'Guiyang','绵阳':'Mianyang','海口':'Haikou','郑州':'Zhengzhou','沈阳':'Shenyang','香港':'Hong Kong','澳门':'Macao','台北':'Taipei','宁波':'Ningbo','无锡':'Wuxi','佛山':'Foshan','珠海':'Zhuhai','中山':'Zhongshan','惠州':'Huizhou','汕头':'Shantou','南宁':'Nanning','南昌':'Nanchang','石家庄':'Shijiazhuang','太原':'Taiyuan','长春':'Changchun','兰州':'Lanzhou','西宁':'Xining','银川':'Yinchuan','济南':'Jinan','合肥':'Hefei','福州':'Fuzhou','温州':'Wenzhou','烟台':'Yantai','唐山':'Tangshan','大庆':'Daqing','齐齐哈尔':'Qiqihar','包头':'Baotou','喀什':'Kashgar','日喀则':'Shigatse','丽江':'Lijiang','大理':'Dali','西双版纳':'Xishuangbanna','阿拉山口':'Alashankou'};
+
+/* ============ 当前展示城市（默认 6 座） ============ */
+const DEFAULTS = [
+  {zh:'北京',  sheng:'北京',  place:'北京',  en:'Beijing'},
+  {zh:'上海',  sheng:'上海',  place:'上海',  en:'Shanghai'},
+  {zh:'广州',  sheng:'广东',  place:'广州',  en:'Guangzhou'},
+  {zh:'哈尔滨', sheng:'黑龙江', place:'哈尔滨', en:'Harbin'},
+  {zh:'重庆',  sheng:'重庆',  place:'重庆',  en:'Chongqing'},
+  {zh:'贵阳',  sheng:'贵州',  place:'贵阳',  en:'Guiyang'},
+].map(c=>({id:c.sheng+'|'+c.place, ...c}));
+let cities = DEFAULTS.map(c=>({...c}));
+const MAX_CARDS = 12;
+const cache = new Map(); // id -> {data, ts}
+
+/* ============ 记住用户增删的城市（localStorage 持久化） ============ */
+const CITIES_KEY = 'aether_cities_user_v1';
+(function loadCities(){
+  try{
+    const raw = localStorage.getItem(CITIES_KEY);
+    if(raw){ const arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length && arr.every(c=>c&&c.place)) cities = arr;
+    }
+  }catch(e){}
+})();
+function saveCities(){
+  try{ localStorage.setItem(CITIES_KEY, JSON.stringify(
+    cities.map(c=>({id:c.id, zh:c.zh, sheng:c.sheng, place:c.place, en:c.en||''}))
+  )); }catch(e){}
+}
+
+/* ============ 全量城市索引（列表接口拉取 + localStorage 缓存） ============ */
+let cityIndex = [];
+let indexReady = false;
+const INDEX_CACHE_KEY = 'aether_cities_v1';
+const INDEX_TTL = 7 * 864e5; // 7 天
+
+function setIndexStatus(state){
+  if(typeof input==='undefined') return;
+  input.placeholder = state==='loading' ? '正在载入全部城市…'
+    : state==='failed' ? '输入城市名，回车直接查询'
+    : `搜索任意城市（共 ${cityIndex.length} 座）· search a city…`;
+}
+async function loadCityIndex(){
+  // localStorage 缓存优先
+  try{
+    const raw = localStorage.getItem(INDEX_CACHE_KEY);
+    if(raw){ const p = JSON.parse(raw);
+      if(p && p.ts && Date.now()-p.ts < INDEX_TTL && Array.isArray(p.list)){
+        cityIndex = p.list; indexReady = true; setIndexStatus('ready'); return;
+      }
+    }
+  }catch(e){}
+  setIndexStatus('loading');
+  try{
+    const acc = [], seen = new Set(), batch = 6;
+    for(let i=0;i<PROVINCES.length;i+=batch){
+      const slice = PROVINCES.slice(i,i+batch);
+      const parts = await Promise.all(slice.map(async sheng=>{
+        const u = `https://cn.apihz.cn/api/tianqi/tqyblist.php?id=${API.id}&key=${API.key}&sheng=${encodeURIComponent(sheng)}`;
+        const r = await fetch(u);
+        if(!r.ok) return [];
+        const d = await r.json();
+        if(d.code != 200) return [];
+        return (d.list||[]).map(it=>({shi:it.shi||it.name, name:it.name||it.shi, sheng}));
+      }));
+      for(const arr of parts) for(const it of arr){
+        const id = it.sheng+'|'+it.name;
+        if(seen.has(id)) continue;
+        seen.add(id);
+        acc.push({id, zh:it.name, sheng:it.sheng, place:it.name, en:EN_MAP[it.name]||''});
+      }
+    }
+    cityIndex = acc; indexReady = true;
+    try{ localStorage.setItem(INDEX_CACHE_KEY, JSON.stringify({ts:Date.now(), list:cityIndex})); }catch(e){}
+    setIndexStatus('ready');
+  }catch(err){
+    console.error('[Aether] 城市库载入失败', err);
+    setIndexStatus('failed');
+  }
+}
+
+/* ============ 场景生成器（SVG 动画） ============ */
+const CLOUD_PATH = 'M30,55 C14,55 6,46 12,37 C5,29 17,20 27,26 C30,11 50,7 58,19 C64,9 82,13 84,26 C97,22 106,33 98,40 C106,46 99,57 88,54 Z';
+
+function cloud(zone, size){
+  const tops = ['14%','32%','8%'];
+  const durs = [30, 38, 26];
+  const delays = [-6, -18, -24];
+  const i = zone % 3;
+  return `<svg class="cloud" style="top:${tops[i]};width:${size}px;animation-duration:${durs[i]}s;animation-delay:${delays[i]}s" viewBox="0 0 120 60" aria-hidden="true"><path d="${CLOUD_PATH}" fill="currentColor"/></svg>`;
+}
+function raindrops(n){let s='';for(let i=0;i<n;i++){const left=Math.random()*100,delay=-Math.random()*1.3,dur=0.7+Math.random()*0.5,h=11+Math.random()*9;s+=`<i class="raindrop" style="left:${left}%;height:${h}px;animation-duration:${dur}s;animation-delay:${delay}s"></i>`;}return s;}
+function snowflakes(n){let s='';for(let i=0;i<n;i++){const left=Math.random()*100,delay=-Math.random()*5,dur=4.5+Math.random()*3.5,size=4+Math.random()*5;s+=`<i class="snowflake" style="left:${left}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s"></i>`;}return s;}
+function stars(n){let s='';for(let i=0;i<n;i++){const left=Math.random()*100,top=Math.random()*72,delay=Math.random()*3.5,dur=2+Math.random()*2.5,size=5+Math.random()*6;s+=`<svg class="star" style="left:${left}%;top:${top}%;width:${size}px;animation-duration:${dur}s;animation-delay:${delay}s" viewBox="0 0 20 20" aria-hidden="true"><path d="M10,0 L11.6,8 L20,10 L11.6,12 L10,20 L8.4,12 L0,10 L8.4,8 Z" fill="currentColor"/></svg>`;}return s;}
+function mistBands(n){let s='';for(let i=0;i<n;i++){const top=22+i*15,dur=16+i*7,delay=-i*6,h=24+Math.random()*10;s+=`<div class="mist-band" style="top:${top}%;height:${h}px;animation-duration:${dur}s;animation-delay:${delay}s"></div>`;}return s;}
+function sunRays(){let s='';for(let i=0;i<8;i++){s+=`<i style="transform:rotate(${i*45}deg)"></i>`;}return s;}
+
+function skyScene(w){
+  switch(w){
+    case 'clear':   return `<div class="sun-cele"><div class="sun-glow"></div><div class="sun-rays">${sunRays()}</div><div class="sun-core"></div></div>` + cloud(0,110) + cloud(2,72);
+    case 'cloudy':  return `<div class="cloudy-sun"></div>` + cloud(0,120) + cloud(1,96) + cloud(2,84) + cloud(0,70);
+    case 'rain':    return cloud(0,120) + cloud(1,100) + raindrops(20);
+    case 'snow':    return cloud(0,116) + cloud(1,92) + snowflakes(18);
+    case 'thunder': return `<div class="lightning-flash"></div><svg class="bolt" viewBox="0 0 34 90" aria-hidden="true"><path d="M20,0 L4,48 L15,48 L8,90 L30,38 L18,38 Z" fill="#fff7b0" stroke="#fff" stroke-width="1"/></svg>` + cloud(0,124) + cloud(1,104) + raindrops(14);
+    case 'mist':    return mistBands(5) + cloud(0,110);
+    case 'night':   return `<div class="moon"><div class="body"></div><span class="crater" style="left:18px;top:16px;width:9px;height:9px"></span><span class="crater" style="left:36px;top:34px;width:7px;height:7px"></span><span class="crater" style="left:24px;top:40px;width:5px;height:5px"></span></div>` + stars(22);
+  }
+  return '';
+}
+
+/* ============ 昼夜判断（用日出日落，回退到小时） ============ */
+function isNight(suntimes){
+  try{
+    if(suntimes && suntimes[0]){
+      const now = new Date();
+      const cur = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+      const sunset = (suntimes[0].sunset||'19:00').slice(0,5);
+      const sunrise = (suntimes[1] ? suntimes[1].sunrise : suntimes[0].sunrise || '06:00').slice(0,5);
+      return cur >= sunset || cur < sunrise;
+    }
+  }catch(e){}
+  const h = new Date().getHours();
+  return h>=19 || h<6;
+}
+
+/* ============ 调用 API ============ */
+async function fetchWeather(city){
+  // 命中缓存
+  const c = cache.get(city.id);
+  if(c && Date.now()-c.ts < API.cacheMs) return c.data;
+
+  const params = new URLSearchParams({
+    id: API.id, key: API.key, sheng: city.sheng, place: city.place,
+    day: '7', hourtype: '1', suntimetype: '1'
+  });
+  const res = await fetch(`${API.url}?${params.toString()}`);
+  if(!res.ok) throw new Error('网络异常 ('+res.status+')');
+  const d = await res.json();
+  if(d.code != 200) throw new Error(d.msg || '接口返回错误');
+  cache.set(city.id, {data:d, ts:Date.now()});
+  return d;
+}
+
+/* ============ 渲染：骨架卡 ============ */
+const grid = document.getElementById('grid');
+
+function render(){
+  grid.innerHTML='';
+  cities.forEach((city,idx)=>{
+    const card = document.createElement('article');
+    card.className='card';
+    card.dataset.id = city.id;
+    card.style.animationDelay = (idx*0.06)+'s';
+    card.innerHTML = `
+      <div class="sky loading">
+        <div class="spinner"></div>
+        <span class="loading-text">正在获取 ${city.zh} 天气…</span>
+      </div>
+      <button class="del" aria-label="移除 ${city.zh}" title="移除">×</button>
+      <div class="card-body loading">
+        <div class="skeleton t"></div>
+        <div class="skeleton c"></div>
+        <div class="skeleton m"></div>
+      </div>`;
+    bindCard(card, city);
+    grid.appendChild(card);
+    // 异步填充
+    loadCard(card, city);
+  });
+}
+
+function bindCard(card, city){
+  card.onclick = e=>{
+    if(e.target.closest('.del')||e.target.closest('.retry')||e.target.closest('.detail-btn')) return;
+    addRipple(card, e);
+  };
+  card.querySelector('.del').onclick = e=>{
+    e.stopPropagation();
+    removeCity(city.id);
+  };
+}
+
+/* ============ 加载单卡 ============ */
+async function loadCard(card, city, force){
+  const sky = card.querySelector('.sky');
+  const body = card.querySelector('.card-body');
+  // 重置为加载态（刷新时）
+  sky.className = 'sky loading';
+  sky.innerHTML = `<div class="spinner"></div><span class="loading-text">正在获取 ${city.zh} 天气…</span>`;
+  body.className = 'card-body loading';
+  body.innerHTML = `<div class="skeleton t"></div><div class="skeleton c"></div><div class="skeleton m"></div>`;
+  card.removeAttribute('data-weather');
+
+  try{
+    if(force) cache.delete(city.id);
+    const d = await fetchWeather(city);
+    fillCard(card, city, d);
+  }catch(err){
+    console.error('[Aether] 获取失败', city.zh, err);
+    errorCard(card, city, err);
+  }
+}
+
+function fillCard(card, city, d){
+  const night = isNight(d.suntimes);
+  const dayWeather = d.weather1 || d.weather2 || '晴';
+  const { scene, en } = mapWeather(dayWeather, night);
+  const w = WEATHER[scene];
+  const now = d.nowinfo || {};
+  const temp = now.temperature != null ? Math.round(now.temperature) : (d.wd1||'--');
+  const high = d.wd1 || '--', low = d.wd2 || '--';
+  const hum = now.humidity != null ? now.humidity : '--';
+  const wind = now.windSpeed != null ? now.windSpeed : '--';
+  const feel = now.feelst != null ? Math.round(now.feelst) : null;
+  const condZh = dayWeather;
+
+  card.dataset.weather = scene;
+  const sky = card.querySelector('.sky');
+  sky.className = 'sky';
+  sky.innerHTML = skyScene(scene);
+
+  // 预警徽章
+  let alarmHtml = '';
+  if(Array.isArray(d.alarm) && d.alarm.length){
+    const a = d.alarm[0];
+    const lv = a.signallevel ? ` ${a.signallevel}` : '';
+    alarmHtml = `<div class="alarm" title="${a.title}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 3L22 20H2L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg><span>${a.signaltype||'预警'}${lv}</span></div>`;
+  }
+
+  const body = card.querySelector('.card-body');
+  body.className = 'card-body';
+  body.innerHTML = `
+    ${alarmHtml}
+    <div class="city">
+      <span class="city-zh">${city.zh}</span>
+      <span class="city-en">${city.en}</span>
+    </div>
+    <div class="temp-row">
+      <div class="temp">${temp}<sup>°</sup></div>
+      ${feel!=null?`<div class="feel">体感 ${feel}°</div>`:''}
+    </div>
+    <div class="cond"><i class="cond-dot" style="background:${w.dot}"></i>${condZh} · ${en}</div>
+    <div class="meta">
+      <span><b>${high}</b>° / <b>${low}</b>°</span>
+      <span>💧 ${hum}%</span>
+      <span>🌬 ${wind} m/s</span>
+    </div>
+    <div class="updated">更新于 ${d.nowinfo && d.nowinfo.uptime ? d.nowinfo.uptime : (d.uptime||'')}</div>
+    <button class="detail-btn" type="button">逐小时 · 7天预报 <span aria-hidden="true">›</span></button>
+  `;
+  const db = card.querySelector('.detail-btn');
+  if(db) db.onclick = e=>{ e.stopPropagation(); openDetail(city); };
+}
+
+function errorCard(card, city, err){
+  const sky = card.querySelector('.sky');
+  sky.className = 'sky error';
+  // 区分：网络/CORS 被拦 vs 接口逻辑错误
+  const isNetwork = err && (err.name === 'TypeError' || /fetch|network|load failed/i.test(err.message));
+  let reason, hint;
+  if(isNetwork){
+    reason = '外网请求被拦截';
+    hint = '预览面板限制了页面的外网访问。请用 Chrome/Edge 直接打开本文件，即可正常加载实时天气。';
+  }else{
+    reason = '接口返回异常';
+    hint = err && err.message ? err.message : '请稍后重试';
+  }
+  sky.innerHTML = `<div class="err-box">
+    <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/></svg></div>
+    <p>${city.zh} 天气获取失败</p>
+    <div class="reason">${reason}</div>
+    <div class="hint">${hint}</div>
+    <button class="retry" type="button">重试</button>
+    <div class="detail">${err ? (err.name+': '+err.message) : ''}</div>
+  </div>`;
+  const body = card.querySelector('.card-body');
+  body.className = 'card-body';
+  body.innerHTML = '';
+  sky.querySelector('.retry').onclick = e=>{
+    e.stopPropagation();
+    loadCard(card, city, true);
+  };
+}
+
+function addRipple(card,e){
+  const r=document.createElement('span');
+  r.className='ripple';
+  const rect=card.getBoundingClientRect();
+  const size=Math.max(rect.width,rect.height);
+  r.style.width=r.style.height=size+'px';
+  r.style.left=(e.clientX-rect.left-size/2)+'px';
+  r.style.top=(e.clientY-rect.top-size/2)+'px';
+  card.appendChild(r);
+  setTimeout(()=>r.remove(),650);
+}
+
+/* ============ 详情弹窗：逐小时 + 7 天 + 日出日落 ============ */
+const modal = document.getElementById('modal');
+const mZh = document.getElementById('m-zh');
+const mEn = document.getElementById('m-en');
+const mSub = document.getElementById('m-sub');
+const mHourly = document.getElementById('m-hourly');
+const mWeekly = document.getElementById('m-weekly');
+const mSun = document.getElementById('m-sun');
+
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function openDetail(city){
+  mZh.textContent = city.zh;
+  mEn.textContent = city.en || '';
+  mSub.textContent = '正在加载预报…';
+  mHourly.innerHTML = ''; mWeekly.innerHTML = ''; mSun.innerHTML = '';
+  modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  let d;
+  try{
+    const c = cache.get(city.id);
+    d = c ? c.data : await fetchWeather(city);
+    fillDetail(city, d);
+  }catch(err){
+    mSub.textContent = '预报加载失败：'+(err&&err.message?err.message:'未知错误');
+    console.error('[Aether] 详情加载失败', err);
+  }
+}
+function fillDetail(city, d){
+  const now = d.nowinfo || {};
+  const w1 = d.weather1 || '—';
+  const night = isNight(d.suntimes);
+  const { en } = mapWeather(w1, night);
+  mSub.textContent = `${w1} · ${en}　当前 ${now.temperature!=null?Math.round(now.temperature):'--'}° · 体感 ${now.feelst!=null?Math.round(now.feelst):'--'}° · 湿度 ${now.humidity!=null?now.humidity:'--'}%`;
+
+  // —— 逐小时 ——
+  const hhtml = [];
+  // 当前
+  hhtml.push(hCell('现在', d.weather1img, `${now.temperature!=null?Math.round(now.temperature):'--'}°`, '当前'));
+  (d.hour1||[]).forEach(slot=>{
+    const rain = slot['降水'] && slot['降水']!=='无降水' ? slot['降水'] : '';
+    hhtml.push(hCell(slot['时间']||'', slot['图标'], (slot['气温']||'').replace('℃','°'), rain));
+  });
+  mHourly.innerHTML = hhtml.join('');
+  // 第一格高亮
+  const first = mHourly.querySelector('.h-cell');
+  if(first) first.classList.add('now');
+
+  // —— 7 天 ——
+  const days = [];
+  const s0 = (d.suntimes && d.suntimes[0]) || {};
+  const todayMd = (s0.date ? s0.date.slice(5).replace('-','/') : '');
+  days.push({wd:'今天', md:todayMd, w1:d.weather1, hi:d.wd1, lo:d.wd2, img:d.weather1img, wind:d.windleve1});
+  for(let k=2;k<=7;k++){
+    const dd = d['weatherday'+k];
+    if(dd) days.push({wd:dd.weekday||'', md:dd.monthDay||'', w1:dd.weather1, hi:dd.wd1, lo:dd.wd2, img:dd.weather1img, wind:dd.windleve1});
+  }
+  mWeekly.innerHTML = days.map(dy=>`
+    <div class="w-row">
+      <div class="w-date">${escHtml(dy.wd)}<small>${escHtml(dy.md)}</small></div>
+      <div class="w-mid">${dy.img?`<img src="${escHtml(dy.img)}" alt="" loading="lazy">`:''}<span>${escHtml(dy.w1||'')}</span></div>
+      <div class="w-temp"><b>${escHtml(dy.hi)}°</b><span class="lo">/ ${escHtml(dy.lo)}°</span></div>
+      <div class="w-wind">${escHtml(dy.wind||'')}</div>
+    </div>`).join('');
+
+  // —— 日出日落（今日）——
+  const s = s0;
+  mSun.innerHTML = `
+    <span>🌅 日出 <b>${escHtml(s.sunrise||'--')}</b></span>
+    <span>🌇 日落 <b>${escHtml(s.sunset||'--')}</b></span>
+    <span>☀️ 正午 <b>${escHtml(s.transit||'--')}</b></span>
+    <span>昼长 <b>${escHtml(s.day_length||'--')}</b></span>`;
+}
+function hCell(time, img, temp, rain){
+  return `<div class="h-cell">
+    <div class="h-time">${escHtml(time)}</div>
+    ${img?`<img class="h-img" src="${escHtml(img)}" alt="" loading="lazy">`:'<div class="h-img"></div>'}
+    <div class="h-temp">${escHtml(temp)}</div>
+    <div class="h-rain">${escHtml(rain||'')}</div>
+  </div>`;
+}
+function closeDetail(){
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+document.getElementById('m-close').addEventListener('click', closeDetail);
+modal.addEventListener('click', e=>{ if(e.target===modal) closeDetail(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && modal.classList.contains('open')) closeDetail(); });
+
+/* ============ 增删 ============ */
+function addCity(city){
+  if(!city) return;
+  if(cities.some(c=>c.id===city.id)){ toast('已经添加过了～'); return; }
+  if(cities.length>=MAX_CARDS){ toast(`卡片最多 ${MAX_CARDS} 座 ⛅ 先移除一些吧`); return; }
+  cities.push(city);
+  input.value=''; closeSuggest();
+  render();
+  saveCities();
+  toast(`已加入 ${city.zh}${city.en?' · '+city.en:''}`);
+}
+function addCityById(id){
+  const c = cityIndex.find(c=>c.id===id) || DEFAULTS.find(c=>c.id===id);
+  if(c) addCity({...c});
+}
+// 兜底：输入任意地名 → 直接查接口，命中即加入
+async function addFreeForm(q){
+  if(cities.some(c=>c.id==='custom|'+q)){ toast('已经添加过了～'); return; }
+  if(cities.length>=MAX_CARDS){ toast(`卡片最多 ${MAX_CARDS} 座 ⛅`); return; }
+  input.value=''; closeSuggest();
+  toast(`正在查询「${q}」…`);
+  try{
+    const u = `${API.url}?id=${API.id}&key=${API.key}&place=${encodeURIComponent(q)}&day=7&hourtype=1&suntimetype=1`;
+    const r = await fetch(u);
+    if(!r.ok) throw new Error('网络异常 ('+r.status+')');
+    const d = await r.json();
+    if(d.code != 200) throw new Error(d.msg || '未找到');
+    const city = {id:'custom|'+q, zh:d.shi||d.name||q, sheng:d.sheng||'', place:d.name||q, en:''};
+    cache.set(city.id, {data:d, ts:Date.now()}); // 预填缓存，避免重复请求
+    addCity(city);
+  }catch(err){
+    console.error('[Aether] freeform 查询失败', err);
+    const m = (err&&err.message)||'';
+    if(/上一级|地址|行政区|400/.test(m)) toast(`「${q}」暂无天气数据，该接口仅支持市/区级，试试上级行政区（如 东莞）`);
+    else toast(`未找到「${q}」，换个城市名试试 ✨`);
+  }
+}
+function removeCity(id){
+  const c=cities.find(c=>c.id===id);
+  if(!c) return;
+  cities=cities.filter(c=>c.id!==id);
+  cache.delete(id);
+  render();
+  saveCities();
+  toast(`已移除 ${c.zh}${c.en?' · '+c.en:''}`);
+}
+
+/* ============ Toast ============ */
+let toastTimer;
+function toast(msg){
+  let t=document.querySelector('.toast');
+  if(!t){ t=document.createElement('div'); t.className='toast'; document.body.appendChild(t); }
+  t.textContent=msg;
+  clearTimeout(toastTimer);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ============ 搜索联想 ============ */
+const input=document.getElementById('search');
+const suggest=document.getElementById('suggest');
+let activeIdx=-1;
+
+function matchCities(q){
+  q=q.toLowerCase();
+  const shown=new Set(cities.map(c=>c.id));
+  return cityIndex.filter(c=>!shown.has(c.id) && (
+    c.zh.toLowerCase().includes(q) || c.sheng.toLowerCase().includes(q) || (c.en&&c.en.toLowerCase().includes(q))
+  )).slice(0,6);
+}
+function renderSuggest(list, q){
+  activeIdx=-1;
+  let html = list.map((c,i)=>
+    `<div class="sug-item${i===0?' active':''}" data-id="${c.id}">
+       <span class="sug-zh">${c.zh}</span>
+       <span class="sug-prov">${c.sheng}</span>
+       <span class="sug-en">${c.en||''}</span>
+    </div>`).join('');
+  if(q){
+    const esc=q.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    html += `<div class="sug-item sug-freeform${list.length===0?' active':''}" data-free="${esc}">
+       <span class="sug-zh">查询「${esc}」</span>
+       <span class="sug-prov">回车直接查接口</span>
+       <span class="sug-en"></span>
+    </div>`;
+  }
+  suggest.innerHTML = html;
+  suggest.classList.toggle('open', !!html);
+}
+function closeSuggest(){ suggest.classList.remove('open'); suggest.innerHTML=''; activeIdx=-1; }
+function setActive(idx){
+  const items=suggest.querySelectorAll('.sug-item');
+  if(!items.length) return;
+  items.forEach(el=>el.classList.remove('active'));
+  idx=(idx+items.length)%items.length;
+  items[idx].classList.add('active'); activeIdx=idx;
+  items[idx].scrollIntoView({block:'nearest'});
+}
+input.addEventListener('input',()=>{
+  const q=input.value.trim();
+  if(!q){ closeSuggest(); return; }
+  renderSuggest(matchCities(q), q);
+});
+suggest.addEventListener('click',e=>{
+  const it=e.target.closest('.sug-item');
+  if(!it) return;
+  if(it.dataset.free) addFreeForm(it.dataset.free);
+  else if(it.dataset.id) addCityById(it.dataset.id);
+});
+input.addEventListener('keydown',e=>{
+  const items=suggest.querySelectorAll('.sug-item');
+  if(e.key==='ArrowDown'){ e.preventDefault(); if(items.length) setActive((activeIdx<0?0:activeIdx)+1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); if(items.length) setActive(activeIdx-1); }
+  else if(e.key==='Enter'){
+    e.preventDefault();
+    const q=input.value.trim();
+    const it = items[activeIdx] || items[0];
+    if(it){
+      if(it.dataset.free) addFreeForm(it.dataset.free);
+      else if(it.dataset.id) addCityById(it.dataset.id);
+    } else if(q){
+      addFreeForm(q);
+    }
+  } else if(e.key==='Escape'){ closeSuggest(); input.blur(); }
+});
+document.addEventListener('click',e=>{ if(!e.target.closest('.search-wrap')) closeSuggest(); });
+
+/* ============ 刷新全部 ============ */
+const refreshBtn = document.getElementById('refresh');
+refreshBtn.addEventListener('click', async ()=>{
+  if(!cities.length) return;
+  refreshBtn.classList.add('loading');
+  cache.clear();
+  const cards = [...grid.querySelectorAll('.card')];
+  await Promise.all(cards.map((card,i)=> new Promise(res=>{
+    setTimeout(()=> loadCard(card, cities[i], true).then(res), i*120);
+  })));
+  refreshBtn.classList.remove('loading');
+  toast('已刷新全部天气 ✨');
+});
+
+/* ============ 启动 ============ */
+render();
+loadCityIndex();
+</script>
+</body>
+</html>
